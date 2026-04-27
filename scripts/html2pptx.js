@@ -23,6 +23,27 @@
  *
  * RETURNS:
  *   { slide, placeholders } where placeholders is an array of { id, x, y, w, h }
+ *
+ * COORDINATE SPACE:
+ *   HTML px → inches: px / PX_PER_IN (96 px/in)
+ *   Inches → EMU:     in * EMU_PER_IN (914400 EMU/in)
+ *   pptxgenjs takes inches, not EMU — the constants at the top do the conversion.
+ *   Body dimensions drive the viewport; if your HTML is 1920×1080 and the layout
+ *   is LAYOUT_16x9 (10×7.5 in), positions scale accordingly.
+ *
+ * HTML CONSTRAINTS (required by export_deck_pptx.mjs — see references/editable-pptx.md):
+ *   1. Fixed px dimensions on <body> (e.g. width:1920px; height:1080px)
+ *   2. All positioned elements use absolute px coordinates (no %, no vh/vw)
+ *   3. Text in real <p>/<h*>/<span> elements (not CSS-generated or canvas)
+ *   4. No CSS transforms on text containers (translate/rotate breaks position math)
+ *
+ * KNOWN UNSUPPORTED CSS:
+ *   - CSS variables (var(--x)) — Playwright resolves these, so they work, but
+ *     color fallbacks may differ if the var references a parent-scope variable
+ *   - mix-blend-mode — ignored; elements render as opaque
+ *   - clip-path — ignored; full bounding box used for positioning
+ *   - Multi-column layout — column-count/column-width not translated
+ *   - SVG text — SVG content is rasterized as an image, not editable text
  */
 
 const { chromium } = require('playwright');

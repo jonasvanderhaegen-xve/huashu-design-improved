@@ -32,6 +32,9 @@
 #
 set -e
 
+command -v ffmpeg  >/dev/null 2>&1 || { echo "✗ ffmpeg not found on PATH. Install: https://ffmpeg.org/download.html" >&2; exit 1; }
+command -v ffprobe >/dev/null 2>&1 || { echo "✗ ffprobe not found on PATH (ships with ffmpeg)" >&2; exit 1; }
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ASSETS_DIR="$SCRIPT_DIR/../assets"
 

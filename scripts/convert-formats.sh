@@ -29,6 +29,8 @@
 
 set -e
 
+command -v ffmpeg >/dev/null 2>&1 || { echo "✗ ffmpeg not found on PATH. Install: https://ffmpeg.org/download.html" >&2; exit 1; }
+
 INPUT=""
 GIF_WIDTH="960"
 USE_MINTERPOLATE=0

@@ -1,28 +1,28 @@
-# Animation Pitfalls：HTML 动画踩过的坑与规则
+# Animation Pitfalls: Real Bugs and Rules from HTML Animation
 
-做动画时最常踩的 bug 和如何避免。每条规则都来自真实失败案例。
+The most common bugs when writing animations — and how to avoid them. Every rule here comes from a real failure.
 
-写动画之前读完这篇，能省一轮迭代。
+Read this before writing any animation. It will save you an iteration.
 
-## 1. 叠层布局 —— `position: relative` 是默认义务
+## 1. Stacked Layout — `position: relative` Is Always Required
 
-**踩的坑**：一个 sentence-wrap 元素包了 3 个 bracket-layer（`position: absolute`）。没给 sentence-wrap 设 `position: relative`，结果 absolute 的 bracket 以 `.canvas` 为坐标系，飘到屏幕底部 200px 外。
+**The bug**: a `sentence-wrap` element contained 3 `bracket-layer` children (`position: absolute`). No `position: relative` on `sentence-wrap`, so the absolute-positioned brackets used `.canvas` as their coordinate origin and ended up 200px off the bottom of the screen.
 
-**规则**：
-- 任何包含 `position: absolute` 子元素的容器，**必须**显式 `position: relative`
-- 即使视觉上不需要「偏移」，也要写 `position: relative` 作为坐标系锚点
-- 如果你在写 `.parent { ... }`，其子元素里有 `.child { position: absolute }`，下意识给 parent 加 relative
+**Rules:**
+- Any container that has `position: absolute` children **must** explicitly set `position: relative`
+- Even when no visual offset is needed, `position: relative` is required as the coordinate anchor
+- When writing `.parent { ... }` with `.child { position: absolute }` inside, reflexively add `relative` to the parent
 
-**快速检查**：每出现一个 `position: absolute`，往上数 ancestor，确保最近的 positioned 祖先是你*想要的*坐标系。
+**Quick check**: for every `position: absolute`, walk up the ancestor chain and confirm the nearest positioned ancestor is the one *you intend* as the coordinate system.
 
-## 2. 字符陷阱 —— 不依赖稀有 Unicode
+## 2. Character Trap — Don't Rely on Rare Unicode
 
-**踩的坑**：想用 `␣` (U+2423 OPEN BOX) 可视化「空格 token」。Noto Serif SC / Cormorant Garamond 都没这个字形，渲染为空白/豆腐，观众完全看不到。
+**The bug**: wanted to use `␣` (U+2423 OPEN BOX) to visualize a "space token". Noto Serif SC / Cormorant Garamond don't have this glyph — renders as blank / tofu. Audience sees nothing.
 
-**规则**：
-- **动画里出现的每个字符，都必须在你选定的字体里存在**
-- 常见稀有字符黑名单：`␣ ␀ ␐ ␋ ␨ ↩ ⏎ ⌘ ⌥ ⌃ ⇧ ␦ ␖ ␛`
-- 要表达「空格 / 回车 / 制表符」这类元字符，用 **CSS 构造的语义盒子**：
+**Rules:**
+- **Every character that appears in an animation must exist in the selected font**
+- Common rare-character blocklist: `␣ ␀ ␐ ␋ ␨ ↩ ⏎ ⌘ ⌥ ⌃ ⇧ ␦ ␖ ␛`
+- To represent metacharacters like "space / return / tab", use **CSS-constructed semantic boxes**:
   ```html
   <span class="space-key">Space</span>
   ```
@@ -38,126 +38,126 @@
     text-transform: uppercase;
   }
   ```
-- Emoji 也要验证：某些 emoji 在 Noto Emoji 以外字体会 fallback 成灰色方框，最好用 `emoji` font-family 或 SVG
+- Validate emoji too: some emoji fall back to gray boxes in fonts other than Noto Emoji — use the `emoji` font-family or SVG
 
-## 3. 数据驱动的 Grid/Flex 模板
+## 3. Data-Driven Grid/Flex Templates
 
-**踩的坑**：代码里 `const N = 6` 个 tokens，但 CSS 写死 `grid-template-columns: 80px repeat(5, 1fr)`。结果第 6 个 token 没有 column，整个矩阵错位。
+**The bug**: code had `const N = 6` tokens, but CSS hardcoded `grid-template-columns: 80px repeat(5, 1fr)`. The 6th token had no column — entire matrix misaligned.
 
-**规则**：
-- 当 count 从 JS 数组来（`TOKENS.length`），CSS 模板也应该数据驱动
-- 方案 A：用 CSS 变量从 JS 注入
+**Rules:**
+- When count comes from a JS array (`TOKENS.length`), CSS templates must also be data-driven
+- Option A: inject via CSS variable from JS
   ```js
   el.style.setProperty('--cols', N);
   ```
   ```css
   .grid { grid-template-columns: 80px repeat(var(--cols), 1fr); }
   ```
-- 方案 B：用 `grid-auto-flow: column` 让浏览器自动扩展
-- **禁用「固定数字 +  JS 常量」的组合**，N 改了 CSS 不会同步更新
+- Option B: use `grid-auto-flow: column` and let the browser expand automatically
+- **Ban the "hardcoded number + JS constant" combination** — when N changes, CSS won't update
 
-## 4. 过渡断层 —— 场景切换要连续
+## 4. Transition Gap — Scene Switches Must Be Continuous
 
-**踩的坑**：zoom1 (13-19s) → zoom2 (19.2-23s) 之间，主句子已经 hidden，zoom1 fade out（0.6s）+ zoom2 fade in（0.6s）+ stagger delay（0.2s+）= 约 1 秒纯空白画面。观众以为动画卡住了。
+**The bug**: zoom1 (13–19s) → zoom2 (19.2–23s) — the main sentence was already hidden. zoom1 fade out (0.6s) + zoom2 fade in (0.6s) + stagger delay (0.2s+) = about 1 second of pure blank canvas. Audience thought the animation had frozen.
 
-**规则**：
-- 连续切换场景时，fade out 和 fade in 要**交叉重叠**，不是前一个完全消失再开始下一个
+**Rules:**
+- When switching scenes continuously, fade out and fade in must **cross-overlap** — don't wait for the previous scene to fully disappear before starting the next
   ```js
-  // 差：
+  // Bad:
   if (t >= 19) hideZoom('zoom1');      // 19.0s out
-  if (t >= 19.4) showZoom('zoom2');    // 19.4s in → 中间 0.4s 空白
+  if (t >= 19.4) showZoom('zoom2');    // 19.4s in → 0.4s blank in between
 
-  // 好：
-  if (t >= 18.6) hideZoom('zoom1');    // 提前 0.4s 开始 fade out
-  if (t >= 18.6) showZoom('zoom2');    // 同时 fade in（cross-fade）
+  // Good:
+  if (t >= 18.6) hideZoom('zoom1');    // start fade out 0.4s early
+  if (t >= 18.6) showZoom('zoom2');    // fade in simultaneously (cross-fade)
   ```
-- 或者用一个「锚点元素」（如主句子）作为场景之间的视觉连接，zoom 切换期间它短暂回显
-- 配 CSS transition 的 duration 算清楚，避免 transition 还没结束就触发下一个
+- Or use an "anchor element" (e.g. the main sentence) as a visual bridge between scenes — briefly bring it back during the zoom switch
+- Calculate CSS transition durations carefully so one transition doesn't fire before the previous one ends
 
-## 5. Pure Render 原则 —— 动画状态应可 seek
+## 5. Pure Render Principle — Animation State Must Be Seekable
 
-**踩的坑**：用 `setTimeout` + `fireOnce(key, fn)` 链式触发动画状态。正常播放没问题，但做逐帧录制/seek到任意时间点时，之前的 setTimeout 已经执行过就无法「回到过去」。
+**The bug**: chained animation state via `setTimeout` + `fireOnce(key, fn)`. Plays fine normally, but when doing frame-by-frame recording / seeking to an arbitrary time, the prior `setTimeout` calls have already fired and can't be "gone back to."
 
-**规则**：
-- `render(t)` 函数理想上是 **pure function**：给定 t 输出唯一 DOM 状态
-- 如果必须用副作用（如 class 切换），用 `fired` set 配合显式 reset：
+**Rules:**
+- `render(t)` should ideally be a **pure function**: given t, outputs a unique DOM state
+- If side effects are necessary (e.g. class toggling), use a `fired` set with explicit reset:
   ```js
   const fired = new Set();
   function fireOnce(key, fn) { if (!fired.has(key)) { fired.add(key); fn(); } }
-  function reset() { fired.clear(); /* 清所有 .show class */ }
+  function reset() { fired.clear(); /* clear all .show classes */ }
   ```
-- 暴露 `window.__seek(t)` 供 Playwright / 调试用：
+- Expose `window.__seek(t)` for Playwright / debugging:
   ```js
   window.__seek = (t) => { reset(); render(t); };
   ```
-- 动画相关的 setTimeout 不要跨越 >1 秒，否则 seek 回跳时会乱套
+- Animation-related `setTimeout` should not span >1 second — on seek-back they'll fire out of order
 
-## 6. 字体加载前测量 = 测错
+## 6. Measuring Before Fonts Load = Measuring Wrong
 
-**踩的坑**：页面一 DOMContentLoaded 就调用 `charRect(idx)` 测量 bracket 位置，字体还没加载，每个字符宽度是 fallback 字体的宽度，位置全错。等字体一加载（约 500ms 后），bracket 的 `left: Xpx` 还是老值，永久偏移。
+**The bug**: called `charRect(idx)` to measure bracket positions immediately on `DOMContentLoaded` — fonts hadn't loaded yet. Every character width was the fallback font's width, so positions were wrong. After fonts loaded (~500ms later), `left: Xpx` still held the old values — permanently offset.
 
-**规则**：
-- 任何依赖 DOM 测量（`getBoundingClientRect`、`offsetWidth`）的布局代码，**必须**包在 `document.fonts.ready.then()` 里
+**Rules:**
+- Any layout code that depends on DOM measurement (`getBoundingClientRect`, `offsetWidth`) **must** be wrapped in `document.fonts.ready.then()`
   ```js
   document.fonts.ready.then(() => {
     requestAnimationFrame(() => {
-      buildBrackets(...);  // 此时字体已就绪，测量准确
-      tick();              // 动画开始
+      buildBrackets(...);  // fonts ready now — measurements are accurate
+      tick();              // start animation
     });
   });
   ```
-- 额外的 `requestAnimationFrame` 给浏览器一帧时间提交 layout
-- 如果用 Google Fonts CDN，`<link rel="preconnect">` 加速首次加载
+- The extra `requestAnimationFrame` gives the browser one frame to commit layout
+- If using Google Fonts CDN, add `<link rel="preconnect">` to speed up initial load
 
-## 7. 录制准备 —— 为视频导出预留抓手
+## 7. Recording Readiness — Build Hooks for Video Export
 
-**踩的坑**：Playwright `recordVideo` 默认 25fps，从 context 创建就开始录。页面加载、字体加载的前 2 秒都被录进去。交付时视频前面 2 秒空白/闪白。
+**The bug**: Playwright `recordVideo` starts recording the moment the context is created. Page load + font load = first 2 seconds captured. Delivered video had 2 seconds of blank / flicker at the start.
 
-**规则**：
-- 提供 `render-video.js` 工具处理：warmup navigate → reload 重启动画 → 等 duration → ffmpeg trim head + 转 H.264 MP4
-- 动画的**第 0 帧**要是最终布局已就位的完整初始状态（不是空白或加载中）
-- 想要 60fps？用 ffmpeg `minterpolate` 后处理，不指望浏览器源帧率
-- 想要 GIF？两阶段 palette（`palettegen` + `paletteuse`），对 30s 1080p 动画能压到 3MB
+**Rules:**
+- Use the `render-video.js` tool to handle: warmup navigate → reload to restart animation → wait duration → ffmpeg trim head + convert to H.264 MP4
+- **Frame 0** must be the complete initial state with layout already in place (not blank, not loading)
+- Want 60fps? Use ffmpeg `minterpolate` in post — don't count on the browser's source frame rate
+- Want GIF? Two-pass palette (`palettegen` + `paletteuse`) — can compress a 30s 1080p animation to ~3MB
 
-参见 `video-export.md` 获取完整脚本调用方式。
+See `video-export.md` for full script invocation.
 
-## 8. 批量导出 —— tmp 目录必须带 PID 防并发冲突
+## 8. Batch Export — Temp Directories Must Include PID to Prevent Concurrency Conflicts
 
-**踩的坑**：用 `render-video.js` 3 个进程并行录 3 个 HTML。因为 TMP_DIR 只用 `Date.now()` 命名，3 个进程同毫秒启动时共用同一个 tmp 目录。最先完成的进程清理 tmp，另外两个读目录时 `ENOENT`，全部崩溃。
+**The bug**: ran `render-video.js` with 3 processes recording 3 HTMLs in parallel. `TMP_DIR` was named with only `Date.now()`. All 3 started at the same millisecond — shared the same tmp directory. The first to finish cleaned it up. The other two tried to read the directory → `ENOENT` → both crashed.
 
-**规则**：
-- 任何多进程可能共用的临时目录，命名必须带 **PID 或随机后缀**：
+**Rules:**
+- Any temp directory that could be shared across processes **must** include a **PID or random suffix**:
   ```js
   const TMP_DIR = path.join(DIR, '.video-tmp-' + Date.now() + '-' + process.pid);
   ```
-- 如果确实想多文件并行，用 shell 的 `&` + `wait` 而不是在一个 node 脚本里 fork
-- 批量录多个 HTML 时，保守做法：**串行**运行（2 个以内可并行，3 个以上老实排队）
+- If you genuinely need parallel multi-file processing, use shell `&` + `wait` rather than forking inside a node script
+- When recording multiple HTMLs in batch, the safe default is **serial** (up to 2 in parallel is fine; 3+ queue them)
 
-## 9. 录屏里有进度条/重播按钮 —— Chrome 元素污染视频
+## 9. Progress Bars / Replay Buttons in Recordings — Chrome Elements Polluting the Video
 
-**踩的坑**：动画 HTML 加了 `.progress` 进度条、`.replay` 重播按钮、`.counter` 时间戳，方便人类调试播放。录成 MP4 交付时这些元素出现在视频底部，像把开发者工具截进去了一样。
+**The bug**: animation HTML included a `.progress` bar, `.replay` button, and `.counter` timestamp — useful for human playback debugging. When exported to MP4 for delivery, these appeared at the bottom of the video, as if the developer tools had been captured.
 
-**规则**：
-- HTML 里给人类用的「chrome 元素」（progress bar / replay button / footer / masthead / counter / phase labels）和视频内容本体分开管理
-- **约定 class 名** `.no-record`：任何带这个 class 的元素，录屏脚本自动隐藏
-- 脚本端（`render-video.js`）默认注入 CSS 隐藏常见 chrome class 名：
+**Rules:**
+- Manage "chrome elements" (progress bar / replay button / footer / masthead / counter / phase labels) separately from the video content itself
+- **Establish class name convention** `.no-record`: any element with this class is automatically hidden by the recording script
+- The script (`render-video.js`) injects CSS by default to hide common chrome class names:
   ```
   .progress .counter .phases .replay .masthead .footer .no-record [data-role="chrome"]
   ```
-- 用 Playwright 的 `addInitScript` 注入（会在每次 navigate 前生效，reload 也稳）
-- 想看原样 HTML（带 chrome）时加 `--keep-chrome` flag
+- Inject via Playwright's `addInitScript` (fires before every navigate — stable through reloads)
+- To view the raw HTML (with chrome visible), add a `--keep-chrome` flag
 
-## 10. 录屏开头几秒动画重复 —— Warmup 帧泄漏
+## 10. Animation Repeats at the Start of Recording — Warmup Frame Leak
 
-**踩的坑**：`render-video.js` 的旧流程 `goto → wait fonts 1.5s → reload → wait duration`。录制从 context 创建就开始，warmup 阶段动画已经播了一段，reload 后从 0 重启。结果视频前几秒是「动画中段 + 切换 + 动画从 0 开始」，重复感强。
+**The bug**: old `render-video.js` flow was `goto → wait fonts 1.5s → reload → wait duration`. Recording starts when the context is created — the warmup phase had already played part of the animation, then reload restarted from t=0. Result: video started with "animation mid-point → cut → animation from 0" — obvious repeat.
 
-**规则**：
-- **Warmup 和 Record 必须用独立的 context**：
-  - Warmup context（无 `recordVideo` 选项）：只负责 load url、等字体、然后 close
-  - Record context（有 `recordVideo`）：fresh 状态开始，animation 从 t=0 开始录
-- ffmpeg `-ss trim` 只能裁 Playwright 的一点点 startup latency（~0.3s），**不能**用来掩盖 warmup 帧；源头要干净
-- 录制 context 关闭 = webm 文件写入磁盘，这是 Playwright 的约束
-- 相关代码模式：
+**Rules:**
+- **Warmup and record must use separate contexts**:
+  - Warmup context (no `recordVideo` option): only loads the URL, waits for fonts, then closes
+  - Record context (with `recordVideo`): starts fresh — animation records from t=0
+- ffmpeg `-ss trim` can only cut Playwright's small startup latency (~0.3s) — **it cannot cover warmup frames**; the source must be clean
+- Recording context closing = webm file flushed to disk (Playwright constraint)
+- Corresponding code pattern:
   ```js
   // Phase 1: warmup (throwaway)
   const warmupCtx = await browser.newContext({ viewport });
@@ -175,72 +175,72 @@
   await recordCtx.close();
   ```
 
-## 11. 画面内别画「伪 chrome」—— 装饰版 player UI 与真 chrome 撞车
+## 11. Don't Draw Fake Chrome Inside the Canvas
 
-**踩的坑**：动画用 `Stage` 组件，已经自带 scrubber + 时间码 + 暂停按钮（属于 `.no-record` chrome，导出时自动隐藏）。我又在画面底部画了一条「`00:60 ──── CLAUDE-DESIGN / ANATOMY`」的"杂志页码感装饰进度条"，自我感觉良好。**结果**：用户看到两条进度条——一条是 Stage 控制器，一条是我画的装饰。视觉上完全撞车，认定为 bug。「视频内还有个进度条是怎么回事？」
+**The bug**: the animation used a `Stage` component that already has its own scrubber + timecode + pause button (all `.no-record` chrome — auto-hidden on export). I also drew a decorative `"00:60 ──── CLAUDE-DESIGN / ANATOMY"` progress bar at the bottom of the canvas — felt clever at the time. **Result**: the user saw two progress bars — one from Stage controls, one from my decoration. Visual collision, immediately flagged as a bug. "Why is there a progress bar inside the video?"
 
-**规则**：
+**Rules:**
 
-- Stage 已经提供：scrubber + 时间码 + 暂停/重播按钮。**画面内不要再画**进度指示、当前时间码、版权署名条、章节计数器——它们要么和 chrome 撞车，要么就是 filler slop（违反「earn its place」原则）。
-- 「页码感」「杂志感」「底部署名条」这些**装饰诉求**，是 AI 自动加上的高频 filler。每一个出现都要警觉——它真的传达了不可替代的信息吗？还是单纯填满空白？
-- 如果你坚信某个底部条带必须存在（例如：动画主题就是讲 player UI），那它必须**叙事必要**，且**视觉上和 Stage scrubber 显著区分**（不同位置、不同形式、不同色调）。
+- Stage already provides: scrubber + timecode + pause/replay. **Do not draw** progress indicators, current timecodes, copyright strips, or chapter counters inside the canvas — they either collide with Stage chrome or they're filler slop (violates the "earn its place" principle).
+- "Magazine page-number feel", "editorial bottom bar", "attribution strip" — these are high-frequency AI filler additions. Every time one appears, ask: does it communicate something irreplaceable? Or is it just filling whitespace?
+- If you're convinced a bottom strip genuinely must exist (e.g. the animation's topic is a player UI), it must be **narratively necessary** and **visually distinct from the Stage scrubber** (different position, different form, different tone).
 
-**元素归属测试**（每个画进 canvas 的元素必须能回答）：
+**Element ownership test** (every element drawn on canvas must answer this):
 
-| 它属于什么 | 处理 |
-|------------|------|
-| 某一幕的叙事内容 | OK，留着 |
-| 全局 chrome（控制/调试用） | 加 `.no-record` class，导出时隐藏 |
-| **既不属于任何幕，又不是 chrome** | **删**。这就是无主之物，必然是 filler slop |
+| It belongs to | Treatment |
+|---|---|
+| A specific scene's narrative content | OK — keep it |
+| Global chrome (controls / debugging) | Add `.no-record` class — hidden on export |
+| **Neither a scene nor chrome** | **Delete.** It's orphaned content — it's always filler slop |
 
-**自检（交付前 3 秒）**：截一张静态图，问自己——
+**Self-check (3 seconds before delivery)**: take a static screenshot and ask:
 
-- 画面里有没有「看起来像 video player UI 的东西」（横线进度条、时间码、控制按钮模样）？
-- 如果有，删掉它叙事是否有损？无损就删。
-- 同一类信息（进度/时间/署名）有没有出现两次？合并到 chrome 一处。
+- Is there anything inside the canvas that looks like a video player UI (horizontal progress bar, timecode, control button shapes)?
+- If yes — does removing it hurt the narrative? If not, remove it.
+- Is the same type of information (progress / time / attribution) appearing twice? Consolidate it into chrome, one place.
 
-**反例**：底部画 `00:42 ──── PROJECT NAME`、画面右下角画"CH 03 / 06"章节计数、画面边缘画版本号"v0.3.1"——都是伪 chrome filler。
+**Anti-examples**: bottom of canvas shows `00:42 ──── PROJECT NAME`; bottom-right shows "CH 03 / 06" chapter counter; canvas edge shows version number "v0.3.1" — all fake-chrome filler.
 
-## 12. 录屏前置空白 + 录屏起点偏移 —— `__ready` × tick × lastTick 三联陷阱
+## 12. Recording Lead-in Blank + Recording Start Offset — The `__ready` × tick × lastTick Triple Trap
 
-**踩的坑（A · 前置空白）**：60 秒动画导出 MP4，前 2-3 秒是空白页面。`ffmpeg --trim=0.3` 剪不掉。
+**Bug A (lead-in blank)**: exporting a 60-second animation to MP4, the first 2–3 seconds are blank. `ffmpeg --trim=0.3` can't cut it.
 
-**踩的坑（B · 起点偏移，2026-04-20 真实事故）**：导出 24 秒视频，用户观感「视频 19 秒才开始播第一帧」。实际上动画从 t=5 开始录，录到 t=24 后 loop 回 t=0，再录 5 秒到 end——所以视频最后 5 秒才是动画真正的开头。
+**Bug B (start offset — real incident 2026-04-20)**: exporting a 24-second video, user perceived "video only starts playing at 19 seconds." What actually happened: animation started recording at t=5, recorded to t=24, then looped back to t=0, then recorded another 5 seconds to end — so the last 5 seconds of the video were the animation's true beginning.
 
-**根因**（两个坑共享一个根因）：
+**Root cause** (shared by both bugs):
 
-Playwright `recordVideo` 从 `newContext()` 那一刻就开始写 WebM，此时 Babel/React/字体加载共耗时 L 秒（2-6s）。录屏脚本等 `window.__ready = true` 作为「动画从这里开始」的锚点——它和动画 `time = 0` 必须严格 pair。有两种常见错法：
+Playwright `recordVideo` starts writing WebM the moment `newContext()` is called. By the time Babel/React/fonts load, L seconds (2–6s) have elapsed. The recording script waits for `window.__ready = true` as the "animation starts here" anchor — and it must be strictly paired with animation `time = 0`. Two common failure patterns:
 
-| 错法 | 症状 |
-|------|------|
-| `__ready` 在 `useEffect` 或同步 setup 阶段设（在 tick 第一帧之前） | 录屏脚本以为动画开始了，实际 WebM 还在录空白页 → **前置空白** |
-| tick 的 `lastTick = performance.now()` 在**脚本顶层**初始化 | 字体加载 L 秒被算进首帧 `dt`，`time` 瞬间跳到 L → 录屏全程滞后 L 秒 → **起点偏移** |
+| Failure | Symptom |
+|---|---|
+| `__ready` set in `useEffect` or synchronous setup (before the first tick frame) | Recording script thinks animation has started; WebM is still recording a blank page → **lead-in blank** |
+| tick's `lastTick = performance.now()` initialized at **script top level** | Font load time L is counted into the first frame's `dt`, causing `time` to jump to L immediately → recording is offset by L seconds throughout → **start offset** |
 
-**✅ 正确的完整 starter tick 模板**（手写动画必须用这个骨架）：
+**✅ Correct starter tick template** (hand-written animations must use this skeleton):
 
 ```js
 // ━━━━━━ state ━━━━━━
 let time = 0;
-let playing = false;   // ❗ 默认不播，等字体 ready 再启动
-let lastTick = null;   // ❗ sentinel——tick 首帧时 dt 强制为 0（别用 performance.now()）
+let playing = false;   // ❗ don't play by default — wait for fonts ready
+let lastTick = null;   // ❗ sentinel — first tick frame forces dt=0 (don't use performance.now())
 const fired = new Set();
 
 // ━━━━━━ tick ━━━━━━
 function tick(now) {
   if (lastTick === null) {
     lastTick = now;
-    window.__ready = true;   // ✅ pair：「录屏起点」与「动画 t=0」同一帧
-    render(0);               // 再渲一次确保 DOM 就绪（此时字体已 ready）
+    window.__ready = true;   // ✅ pair: recording start and animation t=0 are the same frame
+    render(0);               // re-render to ensure DOM is ready (fonts are loaded at this point)
     requestAnimationFrame(tick);
     return;
   }
-  const dt = (now - lastTick) / 1000;   // 首帧之后 dt 才开始推进
+  const dt = (now - lastTick) / 1000;   // dt only advances after the first frame
   lastTick = now;
 
   if (playing) {
     let t = time + dt;
     if (t >= DURATION) {
-      t = window.__recording ? DURATION - 0.001 : 0;  // 录制时不 loop，留 0.001s 保留末帧
+      t = window.__recording ? DURATION - 0.001 : 0;  // no loop during recording; 0.001s preserves the final frame
       if (!window.__recording) fired.clear();
     }
     time = t;
@@ -250,131 +250,131 @@ function tick(now) {
 }
 
 // ━━━━━━ boot ━━━━━━
-// 不要在顶层立即 rAF——等字体加载完才启动
+// don't rAF at top level — wait for fonts before starting
 document.fonts.ready.then(() => {
-  render(0);                 // 先把初始画面画出来（字体已就绪）
+  render(0);                 // draw the initial frame first (fonts are ready)
   playing = true;
-  requestAnimationFrame(tick);  // 首次 tick 会 pair __ready + t=0
+  requestAnimationFrame(tick);  // first tick pairs __ready with t=0
 });
 
-// ━━━━━━ seek 接口（供 render-video 防御性矫正用）━━━━━━
+// ━━━━━━ seek interface (used by render-video for defensive correction) ━━━━━━
 window.__seek = (t) => { fired.clear(); time = t; lastTick = null; render(t); };
 ```
 
-**为什么这个模板对**：
+**Why this template is correct:**
 
-| 环节 | 为什么必须这样 |
-|------|-------------|
-| `lastTick = null` + 首帧 `return` | 避免「脚本加载到 tick 首次执行」的 L 秒被算进动画时间 |
-| `playing = false` 默认 | 字体加载期间 `tick` 即使运行也不推进 time，避免渲染错位 |
-| `__ready` 在 tick 首帧设 | 录屏脚本此刻开始计时，对应的画面是动画真正的 t=0 |
-| `document.fonts.ready.then(...)` 里才启动 tick | 规避字体 fallback 宽度测量、避免首帧字体跳变 |
-| `window.__seek` 存在 | 让 `render-video.js` 可以主动矫正——第二道防线 |
+| Step | Why it must be this way |
+|---|---|
+| `lastTick = null` + first frame `return` | Prevents the L seconds from "script load to first tick execution" from counting as animation time |
+| `playing = false` default | During font load, `tick` can run without advancing `time` — no render misalignment |
+| `__ready` set on the first tick frame | Recording script starts its timer at this moment, which matches the canvas showing animation t=0 |
+| Tick started inside `document.fonts.ready.then(...)` | Avoids fallback font width measurements and prevents first-frame font jump |
+| `window.__seek` exposed | Lets `render-video.js` actively correct — second line of defense |
 
-**录屏脚本端的对应防御**：
-1. `addInitScript` 注入 `window.__recording = true`（先于 page goto）
-2. `waitForFunction(() => window.__ready === true)`，记录此刻偏移作为 ffmpeg trim
-3. **额外**：`__ready` 之后主动 `page.evaluate(() => window.__seek && window.__seek(0))`，把 HTML 可能的 time 偏差强制归零——这是第二道防线，对付不严格遵守 starter 模板的 HTML
+**Corresponding defenses in the recording script:**
+1. Inject `window.__recording = true` via `addInitScript` (before page goto)
+2. `waitForFunction(() => window.__ready === true)` — record the offset for ffmpeg trim
+3. **Also**: after `__ready`, actively call `page.evaluate(() => window.__seek && window.__seek(0))` to force-reset any time drift in the HTML — second line of defense for HTMLs that don't strictly follow the starter template
 
-**验证方法**：导出 MP4 后
+**Verification**: after exporting MP4:
 ```bash
 ffmpeg -i video.mp4 -ss 0 -vframes 1 frame-0.png
 ffmpeg -i video.mp4 -ss $DURATION-0.1 -vframes 1 frame-end.png
 ```
-首帧必须是动画 t=0 的初始状态（不是中段，不是黑），末帧必须是动画终态（不是第二轮 loop 的某个时刻）。
+Frame 0 must be the animation's initial state at t=0 (not mid-animation, not black). Last frame must be the animation's final state (not a loop restart).
 
-**参考实现**：`assets/animations.jsx` 的 Stage 组件、`scripts/render-video.js` 都已按此协议实现。手写 HTML 必须套 starter tick 模板——每一行都是防过具体 bug。
+**Reference implementation**: the `Stage` component in `assets/animations.jsx` and `scripts/render-video.js` both implement this protocol. Hand-written HTML must use the starter tick template — every line defends against a specific real bug.
 
-## 13. 录制时禁止 loop —— `window.__recording` 信号
+## 13. Disable Loop During Recording — `window.__recording` Signal
 
-**踩的坑**：动画 Stage 默认 `loop=true`（浏览器里方便看效果）。`render-video.js` 录完 duration 秒还多等 300ms 缓冲才停止，这 300ms 让 Stage 进入下一循环。ffmpeg `-t DURATION` 截取时，最后 0.5-1s 落入下一循环——视频结尾突然回到第一帧（Scene 1），观众以为视频出 bug。
+**The bug**: animation `Stage` defaults to `loop=true` (convenient for browser preview). `render-video.js` waited an extra 300ms after the duration as a buffer before stopping. Those 300ms let Stage enter the next loop cycle. ffmpeg `-t DURATION` cut the export — the last 0.5–1s fell into the next loop iteration. Video ending suddenly jumped back to the first frame (Scene 1). Audience thought the video was broken.
 
-**根因**：录制脚本和 HTML 之间没有"我在录制"的握手协议。HTML 不知道自己被录，依然按浏览器交互场景循环。
+**Root cause**: no handshake between the recording script and the HTML. HTML doesn't know it's being recorded — it loops as normal.
 
-**规则**：
+**Rules:**
 
-1. **录制脚本**：在 `addInitScript` 里注入 `window.__recording = true`（先于 page goto）：
+1. **Recording script**: inject `window.__recording = true` via `addInitScript` (before page goto):
    ```js
    await recordCtx.addInitScript(() => { window.__recording = true; });
    ```
 
-2. **Stage 组件**：识别这个信号，强制 loop=false：
+2. **Stage component**: detect this signal and force `loop=false`:
    ```js
    const effectiveLoop = (typeof window !== 'undefined' && window.__recording) ? false : loop;
    // ...
    if (next >= duration) return effectiveLoop ? 0 : duration - 0.001;
-   //                                                       ↑ 留 0.001 防止 Sprite end=duration 被关掉
+   //                                                       ↑ 0.001 keeps final-frame Sprites from being hidden
    ```
 
-3. **结尾 Sprite 的 fadeOut**：录制场景下应设 `fadeOut={0}`，否则视频末尾会渐变到透明/暗色——用户期望停在清晰的最后一帧，不是淡出。手写 HTML 时建议结尾 Sprite 都用 `fadeOut={0}`。
+3. **Final Sprite's `fadeOut`**: should be set to `fadeOut={0}` in recording mode — otherwise the video end fades to transparent/dark. Users expect to pause on a clean final frame, not a fade-out. For hand-written HTML, always set `fadeOut={0}` on the ending Sprite.
 
-**参考实现**：`assets/animations.jsx` 的 Stage / `scripts/render-video.js` 都已内置握手。手写 Stage 必须实现 `__recording` 检测——否则录制必踩这个坑。
+**Reference implementation**: `assets/animations.jsx` Stage / `scripts/render-video.js` both have the handshake built in. Hand-written Stage must implement `__recording` detection — otherwise recording will always hit this bug.
 
-**验证**：导出 MP4 后 `ffmpeg -ss 19.8 -i video.mp4 -frames:v 1 end.png`，检查倒数 0.2 秒是否还是预期最后一帧，没有突然切换到另一个 scene。
+**Verification**: after exporting MP4, run `ffmpeg -ss 19.8 -i video.mp4 -frames:v 1 end.png` and confirm the last 0.2 seconds are still the expected final frame — no sudden cut to another scene.
 
-## 14. 60fps 视频默认用帧复制 —— minterpolate 兼容性差
+## 14. 60fps Video Defaults to Frame Duplication — minterpolate Has Compatibility Issues
 
-**踩的坑**：`convert-formats.sh` 用 `minterpolate=fps=60:mi_mode=mci...` 生成的 60fps MP4，在 macOS QuickTime / Safari 部分版本下无法打开（一片黑或直接拒打）。VLC / Chrome 能打开。
+**The bug**: `convert-formats.sh` used `minterpolate=fps=60:mi_mode=mci...` to generate 60fps MP4. On some versions of macOS QuickTime / Safari, the file wouldn't open (black screen or refused to load). VLC / Chrome worked fine.
 
-**根因**：minterpolate 输出的 H.264 elementary stream 包含某些播放器解析有问题的 SEI / SPS 字段。
+**Root cause**: minterpolate produces H.264 elementary streams with SEI / SPS fields that some players can't parse.
 
-**规则**：
+**Rules:**
 
-- 默认 60fps 用简单 `fps=60` filter（帧复制），兼容性广（QuickTime/Safari/Chrome/VLC 都能开）
-- 高质量插帧用 `--minterpolate` flag 显式启用——但**必须本地测过**目标播放器再交付
-- 60fps 标签价值是**上传平台的算法识别**（Bilibili / YouTube 上 60fps 标记会优先推流），实际感知流畅度对 CSS 动画来说提升微弱
-- 加 `-profile:v high -level 4.0` 提升 H.264 通用兼容性
+- Default 60fps uses simple `fps=60` filter (frame duplication) — broad compatibility (QuickTime / Safari / Chrome / VLC all work)
+- High-quality interpolation uses `--minterpolate` flag — opt-in, but **must be tested on the target player before delivery**
+- The value of the 60fps label is **platform algorithm recognition** (Bilibili / YouTube prioritize 60fps streams) — perceived smoothness gain for CSS animations is minimal
+- Add `-profile:v high -level 4.0` to improve H.264 universal compatibility
 
-**`convert-formats.sh` 已默认改成兼容模式**。如果你需要插帧高质量，加 `--minterpolate` flag：
+**`convert-formats.sh` now defaults to compatibility mode.** To opt into high-quality interpolation:
 ```bash
 bash convert-formats.sh input.mp4 --minterpolate
 ```
 
-## 15. `file://` + 外部 `.jsx` 的 CORS 陷阱 —— 单文件交付必须内联引擎
+## 15. `file://` + External `.jsx` CORS Trap — Single-File Delivery Must Inline the Engine
 
-**踩的坑**：动画 HTML 里用 `<script type="text/babel" src="animations.jsx"></script>` 外部加载引擎。本机双击打开（`file://` 协议）→ Babel Standalone 走 XHR 拉 `.jsx` → Chrome 报 `Cross origin requests are only supported for protocol schemes: http, https, chrome, chrome-extension...` → 整页黑屏，不报 `pageerror` 只报 console error，很容易当"动画没触发"误诊。
+**The bug**: animation HTML used `<script type="text/babel" src="animations.jsx"></script>` to load the engine externally. Opening locally by double-click (`file://` protocol) → Babel Standalone uses XHR to fetch `.jsx` → Chrome throws `Cross origin requests are only supported for protocol schemes: http, https, chrome, chrome-extension...` → entire page black screen. Doesn't trigger `pageerror` — only a console error — easy to misdiagnose as "animation not triggering."
 
-启 HTTP server 也未必救得了——本机有全局代理时 `localhost` 也会走代理，返回 502 / 连接失败。
+Starting an HTTP server doesn't always fix it either — on machines with a global proxy, `localhost` also routes through the proxy and returns 502 / connection failure.
 
-**规则**：
+**Rules:**
 
-- **单文件交付（双击打开即用的 HTML）** → `animations.jsx` 必须**内联**到 `<script type="text/babel">...</script>` 标签内，不要用 `src="animations.jsx"`
-- **多文件项目（起 HTTP server 演示）** → 可以外部加载，但交付时明确写清 `python3 -m http.server 8000` 命令
-- 判断标准：交付给用户的是"HTML 文件"还是"带 server 的项目目录"？前者用内联
-- Stage 组件 / animations.jsx 经常 200+ 行——贴进 HTML `<script>` 块完全可接受，别怕体积
+- **Single-file delivery (HTML that works by double-click)** → `animations.jsx` must be **inlined** inside a `<script type="text/babel">...</script>` tag — do not use `src="animations.jsx"`
+- **Multi-file project (demonstrated via HTTP server)** → external loading is fine, but write the startup command explicitly: `python3 -m http.server 8000`
+- The deciding question: is the deliverable "an HTML file" or "a project directory with a server"? The former requires inlining
+- Stage / animations.jsx is often 200+ lines — pasting it into an HTML `<script>` block is completely acceptable; don't worry about size
 
-**最小验证**：双击你生成的 HTML，**不要**通过任何 server 打开。如果 Stage 正常显示动画首帧，才算通过。
+**Minimum verification**: double-click your generated HTML — **not via any server**. If Stage displays the animation's first frame correctly, it passes.
 
-## 16. 跨 scene 反色上下文 —— 画面内元素不要硬编码颜色
+## 16. Cross-Scene Color Visibility — Don't Hardcode Colors on Elements Shared Across Scenes
 
-**踩的坑**：做多场景动画时，`ChapterLabel` / `SceneNumber` / `Watermark` 等**跨 scene 都出现**的元素，在组件里写死 `color: '#1A1A1A'`（深色文字）。前 4 个 scene 浅底 OK，到第 5 个黑底 scene 时"05"和水印直接消失——不报错、不触发任何检查、关键信息隐形。
+**The bug**: in a multi-scene animation, `ChapterLabel` / `SceneNumber` / `Watermark` and other **elements that appear across all scenes** had `color: '#1A1A1A'` (dark text) hardcoded in the component. Fine for the first 4 light-background scenes. On scene 5 with a black background, "05" and the watermark simply vanished — no error, no triggered check, critical information invisible.
 
-**规则**：
+**Rules:**
 
-- **跨多 scene 复用的画面内元素**（chapter 标签 / scene 编号 / 时间码 / 水印 / 版权条）**禁止硬编码颜色值**
-- 改用三种方式之一：
-  1. **`currentColor` 继承**：元素只写 `color: currentColor`，父 scene 容器设 `color: 计算值`
-  2. **invert prop**：组件接受 `<ChapterLabel invert />` 手动切换深浅
-  3. **基于底色自动计算**：`color: contrast-color(var(--scene-bg))`（CSS 4 新 API，或 JS 判断）
-- 交付前用 Playwright 抽**每个 scene 的代表帧**，人眼过一遍"跨 scene 元素"是否都可见
+- **Canvas elements reused across multiple scenes** (chapter labels / scene numbers / timecodes / watermarks / copyright strips) **must not hardcode color values**
+- Use one of three approaches:
+  1. **`currentColor` inheritance**: element only sets `color: currentColor`; the parent scene container sets the computed value
+  2. **invert prop**: component accepts `<ChapterLabel invert />` to manually switch between light and dark
+  3. **Automatic calculation from background**: `color: contrast-color(var(--scene-bg))` (CSS 4 new API, or JS logic)
+- Before delivery, use Playwright to capture **a representative frame from each scene** and visually confirm all cross-scene elements are visible
 
-这条坑的隐蔽性在于——**没有 bug 报警**。只有人眼或 OCR 能发现。
+This pitfall is insidious — **no error fires**. Only human eyes or OCR can catch it.
 
-## 快速自查清单（开工前 5 秒）
+## Quick Pre-Flight Checklist (5 seconds before starting)
 
-- [ ] 每个 `position: absolute` 的父元素都有 `position: relative`？
-- [ ] 动画里的特殊字符（`␣` `⌘` `emoji`）都在字体里存在？
-- [ ] Grid/Flex 模板的 count 和 JS 数据的 length 一致？
-- [ ] 场景切换之间有 cross-fade，没有 >0.3s 的纯空白？
-- [ ] DOM 测量代码包在 `document.fonts.ready.then()` 里？
-- [ ] `render(t)` 是 pure 的，或有明确的 reset 机制？
-- [ ] 第 0 帧是完整初始状态，不是空白？
-- [ ] 画面内没有「伪 chrome」装饰（进度条/时间码/底部署名条与 Stage scrubber 撞车）？
-- [ ] 动画 tick 第一帧同步设 `window.__ready = true`？（用 animations.jsx 自带；手写 HTML 自己加）
-- [ ] Stage 检测 `window.__recording` 强制 loop=false？（手写 HTML 必加）
-- [ ] 结尾 Sprite 的 `fadeOut` 设为 0（视频末尾停清晰帧）？
-- [ ] 60fps MP4 默认用帧复制模式（兼容性），高质量插帧才加 `--minterpolate`？
-- [ ] 导出后抽第 0 帧 + 末帧验证是动画初始/最终状态？
-- [ ] 涉及具体品牌（Stripe/Anthropic/Lovart/...）：走完了「品牌资产协议」（SKILL.md §1.a 五步）？有没有写 `brand-spec.md`？
-- [ ] 单文件交付的 HTML：`animations.jsx` 是内联的，不是 `src="..."`？（file:// 下 external .jsx 会 CORS 黑屏）
-- [ ] 跨 scene 出现的元素（chapter 标签/水印/scene 编号）没有硬编码颜色？在每个 scene 底色下都可见？
+- [ ] Every `position: absolute` element has a `position: relative` parent?
+- [ ] Every special character in the animation (`␣` `⌘` emoji) exists in the selected font?
+- [ ] Grid/Flex column count matches the JS data length?
+- [ ] Scene transitions use cross-fades — no >0.3s blank gaps?
+- [ ] DOM measurement code is wrapped in `document.fonts.ready.then()`?
+- [ ] `render(t)` is pure, or has an explicit reset mechanism?
+- [ ] Frame 0 is the complete initial state — not blank?
+- [ ] No fake chrome inside the canvas (progress bar / timecode / bottom attribution strip colliding with Stage scrubber)?
+- [ ] Animation tick sets `window.__ready = true` on the first frame? (built into animations.jsx; hand-written HTML must add it)
+- [ ] Stage detects `window.__recording` and forces `loop=false`? (required for hand-written HTML)
+- [ ] Final Sprite has `fadeOut={0}` set (video ends on a clean frame)?
+- [ ] 60fps MP4 uses frame-duplication mode by default (compatibility); high-quality interpolation only with `--minterpolate`?
+- [ ] After export: extracted frame 0 and final frame and confirmed they're the animation's initial / final states?
+- [ ] Task involves a specific brand (Stripe / Anthropic / Lovart / ...): completed the Brand Asset Protocol (SKILL.md §1.a five steps)? `brand-spec.md` written?
+- [ ] Single-file HTML deliverable: `animations.jsx` is inlined — not `src="..."`? (external .jsx causes CORS black screen under `file://`)
+- [ ] Elements appearing across scenes (chapter labels / watermarks / scene numbers) have no hardcoded colors? Visible on every scene background?

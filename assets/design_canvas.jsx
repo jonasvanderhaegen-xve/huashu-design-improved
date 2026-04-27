@@ -1,27 +1,27 @@
 /**
- * DesignCanvas — 变体并排网格布局
+ * DesignCanvas — side-by-side variant grid layout
  *
- * 用于展示2+个静态设计variations让用户对比选择。
- * 每个variation有label，可hover放大。
+ * For displaying 2+ static design variations so users can compare and choose.
+ * Each variation has a label and can be clicked to zoom in.
  *
- * 用法：
+ * Usage:
  *   <DesignCanvas
- *     title="Hero区设计探索"
- *     subtitle="3个方向对比"
+ *     title="Hero Section Design Exploration"
+ *     subtitle="3-direction comparison"
  *     columns={3}
  *   >
- *     <Variation label="Minimal" description="极简克制版">
- *       <div>...你的设计1...</div>
+ *     <Variation label="Minimal" description="restrained minimalism">
+ *       <div>...your design 1...</div>
  *     </Variation>
- *     <Variation label="Editorial" description="杂志编辑风">
- *       <div>...你的设计2...</div>
+ *     <Variation label="Editorial" description="magazine editorial style">
+ *       <div>...your design 2...</div>
  *     </Variation>
- *     <Variation label="Brutalist" description="粗粝原始">
- *       <div>...你的设计3...</div>
+ *     <Variation label="Brutalist" description="raw brutalism">
+ *       <div>...your design 3...</div>
  *     </Variation>
  *   </DesignCanvas>
  *
- * 配合React+Babel使用。放在合适的script里，然后window.DesignCanvas/window.Variation可用。
+ * Use with React+Babel. Place in a suitable script tag; window.DesignCanvas and window.Variation will then be available.
  */
 
 const canvasStyles = {
