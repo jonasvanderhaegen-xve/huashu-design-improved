@@ -481,6 +481,9 @@ Usage: read the corresponding `assets/` file → inline into your HTML `<script>
 | **Cognitive load** (multi-step flows, onboarding, info-dense slides) | `references/cognitive-load.md` (Sweller's 3 load types + chunking rules + 8-item checklist) |
 | **Brand vs product design mode** (palette depth, typography strategy) | `references/design-register.md` (brand register vs product register decision) |
 | **UX writing** (error messages, button labels, empty states, voice/tone) | `references/content-guidelines.md` §UX Writing Templates |
+| **Responsive design** (touch targets, safe areas, pointer queries, dvh, auto-fit) | `references/responsive-design.md` |
+| **Edge-case hardening** (long text, empty/max data, error states, i18n) | `references/harden.md` (pre-delivery checklist) |
+| **Persona stress-test** (critique lens for interactive prototypes) | `references/personas.md` (5 archetypes + critique template) |
 | **Animation export MP4/GIF/BGM** | `references/video-export.md` + `scripts/render-video.js` + `scripts/convert-formats.sh` + `scripts/add-music.sh` |
 | **Animation SFX** (Apple-keynote-tier, 37 pre-made) | `references/sfx-library.md` + `assets/sfx/<category>/*.mp3` |
 | **Animation audio config** (SFX+BGM dual-track, golden ratio, ffmpeg template, scene recipes) | `references/audio-design-rules.md` |
