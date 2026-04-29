@@ -58,6 +58,21 @@ Not for: production web apps, SEO sites, backend-dependent dynamic systems — u
 
 ---
 
+## Preflight Checklist (run before starting any design work)
+
+Four gates — resolve any red gate before proceeding.
+
+| Gate | Check | Red → action |
+|---|---|---|
+| **Context** | Do I know what deliverable is needed? (slide / animation / prototype / infographic) | Ask one focused question or enter Design Direction Advisor mode |
+| **Brand** | If a brand is involved: has Principle #0 confirmed it exists? Has `references/brand-protocol.md` been loaded? | Run Principle #0 first; then load brand-protocol |
+| **Command** | Is scope clear enough to start without guessing the direction? | Ask the user — one question, not ten |
+| **Resources** | Are design materials available to build from? (brand spec / screenshots / UI kit / Figma / codebase) | Ask the user; if nothing available, enter Design Direction Advisor mode |
+
+All four green → proceed. A gate that stays red after one clarification round → use best judgment and **label the assumption explicitly** so the user can correct it.
+
+---
+
 ## Core Philosophy (priority: high to low)
 
 ### 1. Build from existing context — never design in a vacuum
@@ -358,7 +373,7 @@ When making iPhone mockups, **hard-bind to `assets/ios_frame.jsx`**. It's the st
    - **Skip only if** user says "no audio" / "silent only" / "I'll add my own"
    - Full pipeline: `references/video-export.md` + `references/audio-design-rules.md` + `references/sfx-library.md`
 
-10. **(Optional) Expert critique**: if user says "critique", "does this look good", "review", "score it", or you have doubts about your own output, run `references/critique-guide.md` — 5-dimension scoring: philosophy coherence / visual hierarchy / detail execution / functionality / innovation, 0–10 each. Output: overall score + Keep (what worked) + Fix (severity: ⚠️ fatal / ⚡ important / 💡 optimize) + Quick Wins (top 3 things doable in 5 min). Critique the design, not the designer.
+10. **(Optional) Expert critique**: if user says "critique", "does this look good", "review", "score it", or you have doubts about your own output, run `references/critique-guide.md` — 5-dimension scoring: philosophy coherence / visual hierarchy / detail execution / functionality / innovation, 0–10 each. Output: overall score + Keep (what worked) + Fix (severity: ⚠️ fatal / ⚡ important / 💡 optimize) + Quick Wins (top 3 things doable in 5 min). Critique the design, not the designer. For interactive prototypes and app mockups: also run `references/heuristics-audit.md` (Nielsen's 10 usability heuristics + 0–4 scoring). **Anchoring caveat**: if you built the design, your critique may be biased — you remember the decisions you made. Read the output fresh before scoring; treat your own intent as irrelevant. If the user requests maximum objectivity, flag: "I built this — consider requesting an independent review."
 
 **Checkpoint principle**: when you hit 🛑, **stop**, explicitly tell the user "I did X, next I plan Y, confirm?" then **actually wait.** Don't say it and immediately keep going.
 
@@ -461,6 +476,11 @@ Usage: read the corresponding `assets/` file → inline into your HTML `<script>
 | **Scene templates by output type** (cover / PPT / infographic) | `references/scene-templates.md` |
 | Post-output verification | `references/verification.md` + `scripts/verify.py` |
 | **Design critique / scoring** (optional post-delivery) | `references/critique-guide.md` (5-dimension scoring + common problems) |
+| **Usability critique** (interactive prototypes + app mockups) | `references/heuristics-audit.md` (Nielsen's 10 heuristics + 0–4 scoring) |
+| **Interactive states** (buttons, inputs, hover/focus/disabled/loading/error/success) | `references/interactive-states.md` (8-state system + CSS patterns + semantic tokens) |
+| **Cognitive load** (multi-step flows, onboarding, info-dense slides) | `references/cognitive-load.md` (Sweller's 3 load types + chunking rules + 8-item checklist) |
+| **Brand vs product design mode** (palette depth, typography strategy) | `references/design-register.md` (brand register vs product register decision) |
+| **UX writing** (error messages, button labels, empty states, voice/tone) | `references/content-guidelines.md` §UX Writing Templates |
 | **Animation export MP4/GIF/BGM** | `references/video-export.md` + `scripts/render-video.js` + `scripts/convert-formats.sh` + `scripts/add-music.sh` |
 | **Animation SFX** (Apple-keynote-tier, 37 pre-made) | `references/sfx-library.md` + `assets/sfx/<category>/*.mp3` |
 | **Animation audio config** (SFX+BGM dual-track, golden ratio, ffmpeg template, scene recipes) | `references/audio-design-rules.md` |

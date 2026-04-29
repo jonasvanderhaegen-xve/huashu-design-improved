@@ -258,3 +258,86 @@ p {
 - Using a purple gradient? → Replace it with a color choice grounded in your context
 
 **Whenever you think "adding this would look nicer" — that's usually a sign of AI slop.** Build the simplest version first; only add when the user asks.
+
+---
+
+## UX Writing Templates
+
+### Error Messages
+
+Formula: **what happened + why + how to fix**
+
+| Context | ❌ Bad | ✅ Good |
+|---|---|---|
+| Expired session | "Error occurred" | "Session expired — sign in again to continue" |
+| Invalid input | "Invalid email" | "Enter a valid email address (e.g. you@company.com)" |
+| Permission denied | "403 Forbidden" | "You don't have access to this item. Ask an admin to add you." |
+| Network failure | "Request failed" | "Couldn't connect — check your internet and try again" |
+| File too large | "File error" | "This file is 24 MB. Maximum is 10 MB. Compress it or upload a smaller one." |
+| Validation error | "Required field" | "Add a project name to continue" |
+
+**Additional rules:**
+- Blame-free language: "Couldn't save" not "You didn't save" / "Save failed" not "Your save failed"
+- Specific: name the field, the limit, or the action that failed — never just "something went wrong"
+- Preserve user's work: never clear a form on validation error
+- Error text inline below the field + brief summary toast if multiple fields failed
+
+### Destructive Action Labels
+
+Name the object and count — never use vague verbs alone.
+
+| ❌ Vague | ✅ Specific |
+|---|---|
+| "Delete" | "Delete 3 projects" |
+| "Remove" | "Remove Jonas from team" |
+| "Clear" | "Clear 14 days of history" |
+| "Reset" | "Reset to defaults" |
+| "Archive" | "Archive this conversation" |
+
+Confirmation dialogs: always show the object being affected in the headline, not just the action.
+
+```
+Delete "Q4 Campaign"?
+This will permanently remove the project and all 47 files inside it.
+[Cancel]  [Delete project]  ← button label repeats the action
+```
+
+### Empty States
+
+Every empty state needs: what's missing + why + what to do next.
+
+| Context | ❌ | ✅ |
+|---|---|---|
+| No results | "No items found" | "No projects match 'invoice' — try a different search term" |
+| First use | "No data" | "No activity yet — create your first project to get started" |
+| Filtered to zero | "Nothing here" | "No tasks with 'High priority' — change filter or add a task" |
+| Permission gap | "No content" | "You don't have access to any projects — ask an admin to add you" |
+
+### Button Labels
+
+Pattern: **verb + object** (not just noun, not just verb)
+
+| ❌ | ✅ |
+|---|---|
+| "Submit" | "Save changes" / "Create account" / "Send message" |
+| "OK" | "Got it" / "Continue" / "Done" |
+| "Yes" | Repeat the action: "Yes, delete" / "Yes, sign out" |
+| "Upload" (standalone) | "Upload photo" / "Add files" |
+| "Continue" (vague) | "Continue to payment" / "Continue to review" |
+
+**CTA on landing pages:** be specific about what happens next — "Start free trial" not "Get started", "See pricing" not "Learn more".
+
+### Voice vs Tone
+
+**Voice** is constant — the brand's personality doesn't change.  
+**Tone** adapts to context — the same person sounds different in a success message vs a critical error.
+
+| Context | Tone |
+|---|---|
+| Success / completion | Warm, brief. "Done! Your changes are saved." |
+| Critical error / data loss risk | Calm, clear, no flourish. State facts. |
+| Empty state / first use | Encouraging. Explain the value, not the absence. |
+| Loading / progress | Reassuring. "Preparing your export…" not silent spinner. |
+| Warning | Direct, non-alarming. "This will affect 3 other users." |
+
+Avoid forced personality in high-stakes moments. "Oops! 🙈 Something broke" is fine for a 404. It's wrong for a payment failure.
