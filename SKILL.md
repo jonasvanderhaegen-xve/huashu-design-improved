@@ -90,7 +90,7 @@ Good hi-fi design **always** grows from existing context. Ask whether the user h
 - Not finding assets and not telling the user, just making something up → **protocol violation**
 - Stop and ask the user for materials rather than filling in with generic content
 
-**5-step hard process — full detail in `references/brand-protocol.md`:**
+**MUST read `references/brand-protocol.md` before starting** — it owns the full step-by-step procedure, per-asset-type search-path tables, 5-10-2-8 scoring rubric, `brand-spec.md` template, and failure-case examples (Kimi, Lovart, DJI Pocket 4). Summary only below:
 1. **Ask** — send the asset checklist once (logo, product photos, UI screenshots, colors, fonts, brand guidelines link)
 2. **Search** — official brand channels by asset type (press page, product page, App Store, inline SVG in homepage header)
 3. **Download** — by asset type with 3 fallback paths each; use `curl`; apply the 5-10-2-8 quality gate (search 5 rounds, find 10 candidates, pick the 2 best, each must score 8/10+)
